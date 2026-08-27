@@ -6,5 +6,6 @@ services:
       - "8001:80"
     environment:
       - API_BASE=${API_BASE:-http://localhost:8000}
+      - MAPTILER_KEY=${MAPTILER_KEY:-}
     volumes:
       - ./app:/var/www/html   # live reload — no rebuild needed on file changes

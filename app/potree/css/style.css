@@ -273,6 +273,12 @@
   height: 30%;
 }
 
+/* ECharts needs a sized container to lay the canvas out in */
+#chart-container {
+  width: 100%;
+  height: 100%;
+}
+
 /* Close button style */
 #close-btn {
   position: absolute;

@@ -28,6 +28,21 @@ const pointCloudURLs = [
 // the year list used by the hotspot controls).
 export const pointCloudYears = pointCloudURLs.map(({ name }) => name);
 
+// The year shown on startup — the hotspot controls seed their label and their
+// prev/next cursor from it, so they must agree with `visible` above.
+export const initialYear =
+  pointCloudURLs.find(({ visible }) => visible)?.name ?? pointCloudYears[0];
+
+// The point clouds are in the project CRS (EPSG:7791, RDN2008 / UTM 32N).
+// `+datum=WGS84` is a PROJ null transform against it — numerically identical.
+const POINTCLOUD_PROJECTION =
+  "+proj=utm +zone=32 +datum=WGS84 +units=m +no_defs +type=crs";
+const MAP_PROJECTION = proj4.defs("WGS84");
+
+// Used by the render loop to drive the Cesium camera from the Potree one.
+window.toMap = proj4(POINTCLOUD_PROJECTION, MAP_PROJECTION);
+window.toScene = proj4(MAP_PROJECTION, POINTCLOUD_PROJECTION);
+
 window.cesiumViewer = new Cesium.Viewer("cesiumContainer", {
   useDefaultRenderLoop: false,
   animation: false,
@@ -43,9 +58,15 @@ window.cesiumViewer = new Cesium.Viewer("cesiumContainer", {
   imageryProvider: Cesium.createOpenStreetMapImageryProvider({url: "https://a.tile.openstreetmap.org/",}),
 });
 
-cesiumViewer.terrainProvider = new Cesium.CesiumTerrainProvider({
-  url: "https://api.maptiler.com/tiles/terrain-quantized-mesh/?key=2hTOFLPdXApzq9gVeMKq", // get your own key at https://cloud.maptiler.com/
-});
+// MAPTILER_KEY comes from config.php (MAPTILER_KEY in the environment). Without
+// it Cesium falls back to the plain ellipsoid instead of 403-ing on every tile.
+if (typeof MAPTILER_KEY === "string" && MAPTILER_KEY !== "") {
+  cesiumViewer.terrainProvider = new Cesium.CesiumTerrainProvider({
+    url: `https://api.maptiler.com/tiles/terrain-quantized-mesh/?key=${MAPTILER_KEY}`, // get your own key at https://cloud.maptiler.com/
+  });
+} else {
+  console.warn("MAPTILER_KEY is not set — rendering without terrain.");
+}
 
 
 let cp = new Cesium.Cartesian3(
@@ -56,7 +77,7 @@ let cp = new Cesium.Cartesian3(
 cesiumViewer.camera.setView({
   destination: cp,
   orientation: {
-    heading: 10,
+    heading: Cesium.Math.toRadians(10),
     pitch: -Cesium.Math.PI_OVER_TWO * 0.5,
     roll: 0.0,
   },
@@ -78,6 +99,35 @@ potreeViewer.useHQ = true;
 
 potreeViewer.setDescription(`
 		Explore the glacier pointclouds over time, load the Ground Control Points annotations and check out the velocity trends by clicking on the target of interest. Best performances on Google Chrome`);
+
+// Load basemap pointcloud — superseded by the background mesh below, kept as the
+// rollback path.
+// loadPointCloud(`${S3_BASE}/background/metadata.json`, "Background", true);
+
+// Load all point cloud data
+pointCloudURLs.forEach(({ url, name, visible }) => {
+  loadPointCloud(url, name, visible);
+});
+
+// The initial camera placement is the same for every cloud, so it is set once
+// rather than on each iteration above.
+potreeViewer.scene.view.setView(
+  [418775.227, 5092016.318, 4084.847],
+  [416658.847, 5090327.441, 2838.766]
+);
+
+// Started after the point clouds so the single large GLB fetch does not starve
+// the octree streams. Must be declared before `loadGUI`, whose callback awaits
+// it: `loadGUI` only happens to be async today (it pulls sidebar.html through
+// jQuery's .load()), and a synchronous path would hit the temporal dead zone.
+const backgroundModel = createBackgroundModel(
+  potreeViewer,
+  `${S3_MESH_BASE}/2009`,
+  "Background (2009 aerial)"
+).catch((err) => {
+  console.error("background model failed to load:", err);
+  return null;
+});
 
 potreeViewer.loadGUI(() => {
   potreeViewer.setLanguage("en");
@@ -120,50 +170,8 @@ function loadPointCloud(url, name, visible = false) {
     material.activeAttributeName = "rgba"; // change this value to "classification" and uncomment the next 2 lines if you desire to show the classified point cloud
     pointcloud.visible = visible;
     scene.addPointCloud(pointcloud);
-    let pointcloudProjection =
-      "+proj=utm +zone=32 +datum=WGS84 +units=m +no_defs +type=crs";
-    let mapProjection = proj4.defs("WGS84");
-    window.toMap = proj4(pointcloudProjection, mapProjection);
-    window.toScene = proj4(mapProjection, pointcloudProjection);
-    {
-      let bb = potreeViewer.getBoundingBox();
-
-      let minWGS84 = proj4(
-        pointcloudProjection,
-        mapProjection,
-        bb.min.toArray()
-      );
-      let maxWGS84 = proj4(
-        pointcloudProjection,
-        mapProjection,
-        bb.max.toArray()
-      );
-    }
   });
 }
-
-// Load basemap pointcloud — superseded by the background mesh below, kept as the
-// rollback path.
-// loadPointCloud(`${S3_BASE}/background/metadata.json`, "Background", true);
-
-
-// Load all point cloud data
-pointCloudURLs.forEach(({ url, name, visible }) => {
-    loadPointCloud(url, name, visible);
-    potreeViewer.scene.view.setView([418775.227, 5092016.318, 4084.847], [416658.847, 5090327.441, 2838.766]);
-});
-
-// Started after the point clouds so the single large GLB fetch does not starve
-// the octree streams.
-const backgroundModel = createBackgroundModel(
-  potreeViewer,
-  `${S3_MESH_BASE}/2009`,
-  "Background (2009 aerial)"
-).catch((err) => {
-  console.error("background model failed to load:", err);
-  return null;
-});
-
 
 function loop(timestamp) {
   requestAnimationFrame(loop);
@@ -177,9 +185,6 @@ function loop(timestamp) {
       let camera = potreeViewer.scene.getActiveCamera();
 
       let pPos = new THREE.Vector3(0, 0, 0).applyMatrix4(camera.matrixWorld);
-      let pRight = new THREE.Vector3(600, 0, 0).applyMatrix4(
-        camera.matrixWorld
-      );
       let pUp = new THREE.Vector3(0, 600, 0).applyMatrix4(camera.matrixWorld);
       let pTarget = potreeViewer.scene.view.getPivot();
 

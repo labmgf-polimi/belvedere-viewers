@@ -67,7 +67,7 @@
 
     <script type="module">
 		// Year list comes from the point clouds declared in viewer.js
-		import { pointCloudYears as years } from "./viewer.js";
+		import { pointCloudYears as years, initialYear } from "./viewer.js";
 
 		// Create the hotspot controls dynamically
 		function createHotspotControls() {
@@ -129,22 +129,17 @@
             document.getElementById('hotspotName').innerHTML = newName;
         }
 
-		$(".link a").click(function () {
-			const year = $(this).data('hotspot-target');
-			// Hide all point clouds except the selected year
-			handlePointCloudVisibility(year);
-			// Update the hotspot name
-			changeHotspotName(year);			
-			$("#lists").hide(); 
-		});
-
         // Hotspots Control Dropup toggle
         $("#hotspots").click(function () {
             $("#lists").toggle();
         });
 
-        // Prev/Next functionality
-        let currentIndex = 0;
+        // Prev/Next functionality. The cursor starts on the year that viewer.js
+        // marked visible, not on the first one, so the first click steps from
+        // what is actually on screen.
+        let currentIndex = Math.max(years.indexOf(initialYear), 0);
+        changeHotspotName(initialYear);
+
         function changeScene(direction) {
             if (direction === 'next') {
                 currentIndex = (currentIndex + 1) % years.length;
