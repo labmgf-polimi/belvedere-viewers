@@ -59038,20 +59038,18 @@ void main() {
 	const ClassificationScheme = {
 
 		DEFAULT: {
-			0:       { visible: true, name: 'Cassone 1'         , color: [0.63, 0.63, 0.18, 1.0] },
-			1:       { visible: true, name: 'Cassone 2'         , color: [0.63, 0.63, 0.63, 1.0] },
-			2:       { visible: true, name: 'Campata 2'         , color: [0.63, 0.32, 0.18, 1.0] },
-			3:       { visible: true, name: 'Spalla 1'		    , color: [0.0,  1.0,  0.0,  1.0] },
-			4:       { visible: true, name: 'Traverse campata 3' 		, color: [0.0,  0.8,  0.0,  1.0] },
-			5:       { visible: true, name: 'Traverse campata 1'			, color: [0.0,  0.6,  0.0,  1.0] },
-			7:       { visible: true, name: 'Traverse campata 2'			, color: [1.0,  0.0,  1.0,  1.0] },
-			9:       { visible: true, name: 'Pila 2', color: [0.0,  0.0,  1.0,  1.0] },
-			10:      { visible: true, name: 'Spalla 2', color: [1.0,  1.0,  0.0,  1.0] },
-			11:      { visible: true, name: 'Parapetto', color: [0.5,  0,  0,  1.0] },
-			12:      { visible: true, name: 'Travi campata 2', color: [0.5,  0,  0,  1.0] },
-			6:      { visible: true, name: 'Pavimentazione', color: [0.3,  0.2,  0.2,  1.0] },
-			8:      { visible: true, name: 'Pila 1'			, color: [1.0,  1.0,  0.0,  1.0] },
-			// DEFAULT: { visible: true, name: 'default'           , color: [0.3,  0.6,  0.6,  0.5] },
+			0:       { visible: true, name: 'never classified'  , color: [0.5,  0.5,  0.5,  1.0] },
+			1:       { visible: true, name: 'unclassified'      , color: [0.5,  0.5,  0.5,  1.0] },
+			2:       { visible: true, name: 'ground'            , color: [0.63, 0.32, 0.18, 1.0] },
+			3:       { visible: true, name: 'low vegetation'    , color: [0.0,  1.0,  0.0,  1.0] },
+			4:       { visible: true, name: 'medium vegetation' , color: [0.0,  0.8,  0.0,  1.0] },
+			5:       { visible: true, name: 'high vegetation'   , color: [0.0,  0.6,  0.0,  1.0] },
+			6:       { visible: true, name: 'building'          , color: [1.0,  0.66, 0.0,  1.0] },
+			7:       { visible: true, name: 'low point(noise)'  , color: [1.0,  0.0,  1.0,  1.0] },
+			8:       { visible: true, name: 'key-point'         , color: [1.0,  0.0,  0.0,  1.0] },
+			9:       { visible: true, name: 'water'             , color: [0.0,  0.0,  1.0,  1.0] },
+			12:      { visible: true, name: 'overlap'           , color: [1.0,  1.0,  0.0,  1.0] },
+			DEFAULT: { visible: true, name: 'default'           , color: [0.3,  0.6,  0.6,  0.5] },
 		}
 	};
 

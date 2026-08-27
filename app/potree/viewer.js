@@ -1,12 +1,14 @@
-import * as THREE from "./libs/three.js/build/three.module.js";
 import {
   createBackgroundModel,
   registerInSceneTree,
-} from "./backgroundModel.js";
+} from "./backgroundMesh.js";
+import * as THREE from "./libs/three.js/build/three.module.js";
 
-// Define constants for point cloud URLs
-const S3_BASE = "https://belvedere-website.nbg1.your-objectstorage.com/potree/pointclouds";
-const S3_MESH_BASE = "https://belvedere-website.nbg1.your-objectstorage.com/potree/meshes";
+// Asset locations. POTREE_ASSETS_BASE is injected by config.php from the
+// environment; the two sub-paths are fixed by the bucket layout documented in
+// docs/background-mesh.md, so only the base is configurable.
+const S3_BASE = `${POTREE_ASSETS_BASE}/pointclouds`;
+const S3_MESH_BASE = `${POTREE_ASSETS_BASE}/meshes`;
 
 const pointCloudURLs = [
   { url: `${S3_BASE}/1977/metadata.json`, name: "1977" },
@@ -39,9 +41,8 @@ const POINTCLOUD_PROJECTION =
   "+proj=utm +zone=32 +datum=WGS84 +units=m +no_defs +type=crs";
 const MAP_PROJECTION = proj4.defs("WGS84");
 
-// Used by the render loop to drive the Cesium camera from the Potree one.
-window.toMap = proj4(POINTCLOUD_PROJECTION, MAP_PROJECTION);
-window.toScene = proj4(MAP_PROJECTION, POINTCLOUD_PROJECTION);
+// Scene coords -> WGS84 degrees, used by syncCesiumCamera below.
+const toMap = proj4(POINTCLOUD_PROJECTION, MAP_PROJECTION);
 
 window.cesiumViewer = new Cesium.Viewer("cesiumContainer", {
   useDefaultRenderLoop: false,
@@ -120,7 +121,7 @@ potreeViewer.scene.view.setView(
 // the octree streams. Must be declared before `loadGUI`, whose callback awaits
 // it: `loadGUI` only happens to be async today (it pulls sidebar.html through
 // jQuery's .load()), and a synchronous path would hit the temporal dead zone.
-const backgroundModel = createBackgroundModel(
+const backgroundMesh = createBackgroundModel(
   potreeViewer,
   `${S3_MESH_BASE}/2009`,
   "Background (2009 aerial)"
@@ -131,9 +132,14 @@ const backgroundModel = createBackgroundModel(
 
 potreeViewer.loadGUI(() => {
   potreeViewer.setLanguage("en");
+
+  // initAccordion() collapses every section; it has already run by the time
+  // this callback fires, so re-opening here sticks. Filters and About stay
+  // collapsed — both are long and neither is needed on arrival.
   // $("#menu_appearance").next().show();
-  // $("#menu_tools").next().show();
-  // $("#menu_scene").next().show();
+  $("#menu_tools").next().show();
+  $("#menu_scene").next().show();
+
   let section = $(
     `<h3 id="menu_meta" class="accordion-header ui-widget"><span>Credits</span></h3><div class="accordion-content ui-widget pv-menu-list"></div>`
   );
@@ -151,11 +157,16 @@ potreeViewer.loadGUI(() => {
     `);
   content.show();
   section.first().click(() => content.slideToggle());
-  section.insertBefore($("#menu_appearance"));
+  // Second to last, just above the stock "About" section.
+  section.insertBefore($("#menu_about"));
 
   // The sidebar tree only exists once loadGUI has run; the mesh may still be
   // loading, so register whenever both are ready.
-  backgroundModel.then((root) => root && registerInSceneTree(root));
+  backgroundMesh.then((root) => root && registerInSceneTree(root));
+
+  // Potree ships with the sidebar collapsed (#potree_render_area starts at
+  // left: 0). Open it once on load; the hamburger still toggles it shut.
+  potreeViewer.toggleSidebar();
 });
 
 function loadPointCloud(url, name, visible = false) {
@@ -173,68 +184,53 @@ function loadPointCloud(url, name, visible = false) {
   });
 }
 
+/**
+ * Drive the Cesium camera from the Potree camera so the two scenes line up.
+ *
+ * Potree renders the point clouds, Cesium renders the terrain and basemap
+ * behind them; they are separate renderers, so Cesium has to be re-aimed from
+ * Potree's camera every frame.
+ */
+function syncCesiumCamera() {
+  const camera = potreeViewer.scene.getActiveCamera();
+
+  const pPos = new THREE.Vector3(0, 0, 0).applyMatrix4(camera.matrixWorld);
+  const pUp = new THREE.Vector3(0, 600, 0).applyMatrix4(camera.matrixWorld);
+  const pTarget = potreeViewer.scene.view.getPivot();
+
+  // Scene coords (UTM 32N) -> Cesium ECEF.
+  const toCes = (pos) =>
+    Cesium.Cartesian3.fromDegrees(...toMap.forward([pos.x, pos.y]), pos.z);
+
+  const cPos = toCes(pPos);
+  const direction = (target) =>
+    Cesium.Cartesian3.normalize(
+      Cesium.Cartesian3.subtract(toCes(target), cPos, new Cesium.Cartesian3()),
+      new Cesium.Cartesian3()
+    );
+
+  cesiumViewer.camera.setView({
+    destination: cPos,
+    orientation: { direction: direction(pTarget), up: direction(pUp) },
+  });
+
+  // Cesium's PerspectiveFrustum.fov is the horizontal angle when the viewport
+  // is wider than it is tall, and the vertical angle otherwise. Potree's fov is
+  // always vertical, so only the landscape case needs converting.
+  const fovy = Math.PI * (camera.fov / 180);
+  cesiumViewer.camera.frustum.fov =
+    camera.aspect < 1
+      ? fovy
+      : Math.atan(Math.tan(0.5 * fovy) * camera.aspect) * 2;
+}
+
 function loop(timestamp) {
   requestAnimationFrame(loop);
 
   potreeViewer.update(potreeViewer.clock.getDelta(), timestamp);
-
   potreeViewer.render();
 
-  if (window.toMap !== undefined) {
-    {
-      let camera = potreeViewer.scene.getActiveCamera();
-
-      let pPos = new THREE.Vector3(0, 0, 0).applyMatrix4(camera.matrixWorld);
-      let pUp = new THREE.Vector3(0, 600, 0).applyMatrix4(camera.matrixWorld);
-      let pTarget = potreeViewer.scene.view.getPivot();
-
-      let toCes = (pos) => {
-        let xy = [pos.x, pos.y];
-        let height = pos.z;
-        let deg = toMap.forward(xy);
-        let cPos = Cesium.Cartesian3.fromDegrees(...deg, height);
-
-        return cPos;
-      };
-
-      let cPos = toCes(pPos);
-      let cUpTarget = toCes(pUp);
-      let cTarget = toCes(pTarget);
-
-      let cDir = Cesium.Cartesian3.subtract(
-        cTarget,
-        cPos,
-        new Cesium.Cartesian3()
-      );
-      let cUp = Cesium.Cartesian3.subtract(
-        cUpTarget,
-        cPos,
-        new Cesium.Cartesian3()
-      );
-
-      cDir = Cesium.Cartesian3.normalize(cDir, new Cesium.Cartesian3());
-      cUp = Cesium.Cartesian3.normalize(cUp, new Cesium.Cartesian3());
-
-      cesiumViewer.camera.setView({
-        destination: cPos,
-        orientation: {
-          direction: cDir,
-          up: cUp,
-        },
-      });
-    }
-
-    let aspect = potreeViewer.scene.getActiveCamera().aspect;
-    if (aspect < 1) {
-      let fovy = Math.PI * (potreeViewer.scene.getActiveCamera().fov / 180);
-      cesiumViewer.camera.frustum.fov = fovy;
-    } else {
-      let fovy = Math.PI * (potreeViewer.scene.getActiveCamera().fov / 180);
-      let fovx = Math.atan(Math.tan(0.5 * fovy) * aspect) * 2;
-      cesiumViewer.camera.frustum.fov = fovx;
-    }
-  }
-
+  syncCesiumCamera();
   cesiumViewer.render();
 }
 

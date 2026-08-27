@@ -35,12 +35,15 @@
 
     <!-- API base URL from the shared config.php (defines const API_BASE) -->
     <script src="/config.php"></script>
-    <!-- Import POINTCLOUD -->
+    <!-- Entry point: builds the Potree + Cesium scene, loads the point clouds
+         and the background mesh, and owns the render loop -->
     <script type="module" src="viewer.js"></script>
-    <!-- Import ANNOTATIONS -->
+    <!-- Velocity chart panel (#gcp-chart) -->
+    <script src="velocityChart.js"></script>
+    <!-- GNSS point annotations in the scene -->
     <script src="annotations.js"></script>
-    <!-- Import main js -->
-    <script type="module" src="main.js"></script>
+    <!-- GNSS survey control panel (year dropdown, Load / Remove) -->
+    <script type="module" src="surveyPanel.js"></script>
 
     <!-- Defining the dropdown menu for selecting Survey years-->
     <div class="surveys-menu-container">
@@ -61,7 +64,9 @@
             <div id="cesiumContainer" style="position: absolute; width: 100%; height: 100%; background-color:black">
             </div>
         </div>
-        <div id="potree_sidebar_container" style="width: 50%; height: 100%;"></div>
+        <!-- 400px matches what loadGUI() forces once sidebar.html loads; setting it
+             here avoids a flash of a differently-sized panel before that happens. -->
+        <div id="potree_sidebar_container" style="width: 400px; height: 100%;"></div>
 
     </div>
 

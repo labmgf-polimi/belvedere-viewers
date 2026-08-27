@@ -1,13 +1,15 @@
+// The GNSS survey control panel: the year dropdown and the Load / Remove
+// buttons, plus the close button on the velocity chart panel.
+//
+// `createAnnotation` comes from annotations.js and `hideChartPanel` from
+// velocityChart.js — both are classic scripts loaded before this module.
+
 /** Throw on a non-2xx response so the .catch below reports it. */
 function asJson(response) {
   if (!response.ok) {
     throw new Error(`${response.url} -> HTTP ${response.status}`);
   }
   return response.json();
-}
-
-function hideChartPanel() {
-  document.querySelector("#gcp-chart").style.visibility = "hidden";
 }
 
 // Fetch survey years from the backend API and populate the dropdown

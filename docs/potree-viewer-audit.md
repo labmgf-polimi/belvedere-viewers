@@ -1,8 +1,10 @@
 # Potree viewer audit — August 2026
 
 A review of the hand-written viewer code in `app/` (`potree/index.php`,
-`viewer.js`, `main.js`, `annotations.js`, `backgroundModel.js`, `config.php`).
-The vendored `potree/libs/` are upstream and out of scope.
+`viewer.js`, `surveyPanel.js`, `annotations.js`, `backgroundMesh.js`,
+`config.php`). The vendored `potree/libs/` are third-party, but note that
+`potree.js` is a hand-edited build, not pristine upstream — `potree.js.map`
+still carries the original source and is the reference for what was changed.
 
 The fixes below were applied in place. The architecture is unchanged: globals
 (`potreeViewer`, `cesiumViewer`, `API_BASE`), classic scripts plus two ES

@@ -7,5 +7,6 @@ services:
     environment:
       - API_BASE=${API_BASE:-http://localhost:8000}
       - MAPTILER_KEY=${MAPTILER_KEY:-}
+      - POTREE_ASSETS_BASE=${POTREE_ASSETS_BASE:-}
     volumes:
       - ./app:/var/www/html   # live reload — no rebuild needed on file changes

@@ -1,44 +1,9 @@
-// GNSS point annotations and their velocity chart.
+// GNSS point annotations in the Potree scene.
 //
-// The chart is drawn into the `#chart-container` element declared in index.php.
-// That element and the `#close-btn` next to it must survive across openings, so
-// nothing here ever writes to `#gcp-chart` itself.
-
-const CHART_CONTAINER_ID = "chart-container";
-
-/** The persistent element the ECharts instance lives in. */
-function chartContainer() {
-  return document.getElementById(CHART_CONTAINER_ID);
-}
-
-/**
- * Get the chart instance for the panel, creating it on first use.
- *
- * ECharts keeps one instance per DOM element; re-initialising without
- * disposing leaks a canvas and a registry entry on every click.
- */
-function getChart(container) {
-  const existing = echarts.getInstanceByDom(container);
-  if (existing) {
-    return existing;
-  }
-  container.textContent = ""; // drop a previous "no data" message
-  return echarts.init(container);
-}
-
-/** Replace the chart with a plain text message. */
-function showChartMessage(message) {
-  const container = chartContainer();
-  echarts.getInstanceByDom(container)?.dispose();
-  container.textContent = message;
-}
-
-window.addEventListener("resize", () => {
-  const container = chartContainer();
-  if (container) {
-    echarts.getInstanceByDom(container)?.resize();
-  }
-});
+// Creates the Potree.Annotation objects and, when one is opened, fetches its
+// velocity series. Drawing that series is velocityChart.js's job — this file
+// only decides *when* the panel is shown and what the annotation description
+// says.
 
 /**
  * Create and add a Potree annotation to the scene with the provided information.
@@ -80,7 +45,7 @@ function createAnnotation(
   // The velocity series is fetched only when the user opens the annotation:
   // fetching it up front costs one request per GNSS point on every load.
   titleElement.click(() => {
-    document.getElementById("gcp-chart").style.visibility = "visible";
+    showChartPanel();
     showVelocity(titleText, annotation, descriptionText);
   });
 
@@ -123,59 +88,4 @@ function showVelocity(pointLabel, annotation, baseDescription) {
       console.error("Error fetching velocity data:", error);
       showChartMessage(`Could not load velocity data for point ${pointLabel}`);
     });
-}
-
-/** Draw the velocity series in the chart panel. */
-function renderVelocityChart(data, pointLabel) {
-  const xAxisData = data.map((entry) => entry.survey_year);
-  const seriesData = data.map((entry) => parseFloat(entry.v));
-
-  const option = {
-    textStyle: {
-      color: "#fff",
-    },
-    title: {
-      text: "Velocity over time for point " + pointLabel,
-      textStyle: {
-        color: "#fff",
-      },
-      textAlign: "auto",
-      padding: 10,
-      left: "center",
-    },
-    xAxis: {
-      type: "category",
-      data: xAxisData,
-    },
-    yAxis: {
-      type: "value",
-      name: "Velocity (m/d)",
-    },
-    tooltip: {
-      trigger: "axis",
-      valueFormatter: (value) => parseFloat(value).toFixed(3) + " m/d",
-    },
-    toolbox: {
-      showTitle: true,
-      feature: {
-        saveAsImage: {},
-        dataView: { readOnly: false },
-        dataZoom: {
-          yAxisIndex: "none",
-        },
-        magicType: { type: ["line", "bar"] },
-        restore: {},
-      },
-    },
-    series: [
-      {
-        data: seriesData,
-        type: "line",
-      },
-    ],
-  };
-
-  // `true` replaces the previous option instead of merging it, so switching
-  // points does not leave the old series behind.
-  getChart(chartContainer()).setOption(option, true);
 }
