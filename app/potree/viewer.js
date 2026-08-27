@@ -1,7 +1,12 @@
 import * as THREE from "./libs/three.js/build/three.module.js";
+import {
+  createBackgroundModel,
+  registerInSceneTree,
+} from "./backgroundModel.js";
 
 // Define constants for point cloud URLs
 const S3_BASE = "https://belvedere-website.nbg1.your-objectstorage.com/potree/pointclouds";
+const S3_MESH_BASE = "https://belvedere-website.nbg1.your-objectstorage.com/potree/meshes";
 
 const pointCloudURLs = [
   { url: `${S3_BASE}/1977/metadata.json`, name: "1977" },
@@ -18,6 +23,10 @@ const pointCloudURLs = [
   { url: `${S3_BASE}/2022/metadata.json`, name: "2022" },
   { url: `${S3_BASE}/2023/metadata.json`, name: "2023", visible: true },
 ];
+
+// Survey years, derived from the point clouds above (single source of truth for
+// the year list used by the hotspot controls).
+export const pointCloudYears = pointCloudURLs.map(({ name }) => name);
 
 window.cesiumViewer = new Cesium.Viewer("cesiumContainer", {
   useDefaultRenderLoop: false,
@@ -93,6 +102,10 @@ potreeViewer.loadGUI(() => {
   content.show();
   section.first().click(() => content.slideToggle());
   section.insertBefore($("#menu_appearance"));
+
+  // The sidebar tree only exists once loadGUI has run; the mesh may still be
+  // loading, so register whenever both are ready.
+  backgroundModel.then((root) => root && registerInSceneTree(root));
 });
 
 function loadPointCloud(url, name, visible = false) {
@@ -129,7 +142,8 @@ function loadPointCloud(url, name, visible = false) {
   });
 }
 
-// Load basemap pointcloud
+// Load basemap pointcloud — superseded by the background mesh below, kept as the
+// rollback path.
 // loadPointCloud(`${S3_BASE}/background/metadata.json`, "Background", true);
 
 
@@ -137,6 +151,17 @@ function loadPointCloud(url, name, visible = false) {
 pointCloudURLs.forEach(({ url, name, visible }) => {
     loadPointCloud(url, name, visible);
     potreeViewer.scene.view.setView([418775.227, 5092016.318, 4084.847], [416658.847, 5090327.441, 2838.766]);
+});
+
+// Started after the point clouds so the single large GLB fetch does not starve
+// the octree streams.
+const backgroundModel = createBackgroundModel(
+  potreeViewer,
+  `${S3_MESH_BASE}/2009`,
+  "Background (2009 aerial)"
+).catch((err) => {
+  console.error("background model failed to load:", err);
+  return null;
 });
 
 

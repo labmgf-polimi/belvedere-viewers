@@ -65,8 +65,9 @@
 
     </div>
 
-    <script>
-		const years = ["1977", "1991", "2001", "2009", "2015", "2016", "2017", "2018", "2019", "2020", "2021", "2022", "2023"];
+    <script type="module">
+		// Year list comes from the point clouds declared in viewer.js
+		import { pointCloudYears as years } from "./viewer.js";
 
 		// Create the hotspot controls dynamically
 		function createHotspotControls() {
