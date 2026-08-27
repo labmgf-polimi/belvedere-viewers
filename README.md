@@ -9,6 +9,10 @@ The website allows users to access 2D and 3D data exploration solutions for quer
 
 The current version of the web platform can be accessed at the following link: https://thebelvedereglacier.it/
 
+## Documentation
+
+* [Background mesh](docs/background-mesh.md) — how the textured terrain backdrop in the Potree viewer works, and the workflow to produce and publish a new one.
+
 ## Belvedere Glacier Open Data
 The data and products of the Belvedere monitoring project that you can explore with this application are published as open data on Zenodo under a GNU GPL v.3.0. license.
 
@@ -26,7 +30,6 @@ The data and products of the Belvedere monitoring project that you can explore w
 
 ### Potree Viewer
 
-- [ ] Integration of images from stereo-cameras
 - [ ] Integration of timeseries from meteo station
 
 
