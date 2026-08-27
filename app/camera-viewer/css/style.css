@@ -1,0 +1,217 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: system-ui, sans-serif;
+  background: #0f0f0f;
+  color: #e0e0e0;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Top bar ── */
+#topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: #1a1a1a;
+  border-bottom: 1px solid #333;
+  flex-wrap: wrap;
+}
+
+#topbar h1 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #aaa;
+  white-space: nowrap;
+}
+
+select,
+button {
+  background: #2a2a2a;
+  color: #e0e0e0;
+  border: 1px solid #444;
+  border-radius: 4px;
+  padding: 5px 10px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+select:focus,
+button:focus {
+  outline: 2px solid #4a9eff;
+}
+
+button:hover {
+  background: #3a3a3a;
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+#camera-select {
+  min-width: 160px;
+}
+
+#nav-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+#date-display {
+  font-size: 0.85rem;
+  min-width: 180px;
+  text-align: center;
+  color: #ccc;
+}
+
+#play-btn {
+  min-width: 60px;
+}
+
+#speed-select {
+  padding: 5px 6px;
+}
+
+#status {
+  font-size: 0.75rem;
+  color: #888;
+  white-space: nowrap;
+}
+
+/* ── Image area ── */
+#image-area {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #000;
+  position: relative;
+}
+
+#main-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  display: none;
+}
+
+#placeholder {
+  color: #555;
+  font-size: 1rem;
+}
+
+#loading-spinner {
+  display: none;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 36px;
+  height: 36px;
+  border: 3px solid #333;
+  border-top-color: #4a9eff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+/* ── Bottom controls ── */
+#bottom-bar {
+  padding: 12px 20px 16px;
+  background: #1a1a1a;
+  border-top: 1px solid #333;
+}
+
+#slider-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+#slider-year-min,
+#slider-year-max {
+  font-size: 0.75rem;
+  color: #888;
+  white-space: nowrap;
+}
+
+#time-slider {
+  flex: 1;
+}
+
+#date-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+#date-row label {
+  font-size: 0.8rem;
+  color: #888;
+}
+
+#date-picker-input {
+  background: #2a2a2a;
+  color: #e0e0e0;
+  border: 1px solid #444;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 0.85rem;
+  width: 140px;
+}
+
+/* noUiSlider dark theme overrides */
+.noUi-target {
+  background: #333;
+  border: none;
+  box-shadow: none;
+}
+
+.noUi-connect {
+  background: #4a9eff;
+}
+
+.noUi-handle {
+  background: #4a9eff;
+  border: none;
+  box-shadow: none;
+  border-radius: 50%;
+  width: 16px !important;
+  height: 16px !important;
+  top: -6px !important;
+  right: -8px !important;
+  cursor: pointer;
+}
+
+.noUi-handle::before,
+.noUi-handle::after {
+  display: none;
+}
+
+.noUi-tooltip {
+  background: #2a2a2a;
+  color: #e0e0e0;
+  border: 1px solid #444;
+  font-size: 0.72rem;
+  padding: 2px 5px;
+}

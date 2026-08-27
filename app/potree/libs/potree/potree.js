@@ -79768,9 +79768,10 @@ ENDSEC
 				onProfileAdded({profile: profile});
 			}
 
-			{
-				createNode(otherID, "Camera", null, new Camera());
-			}
+			// Local edit: upstream adds a "Camera" node under Other here, which
+			// opens a live position/target readout. Removed as unwanted in this
+			// viewer. Restore with:
+			//   createNode(otherID, "Camera", null, new Camera());
 
 			this.viewer.addEventListener("scene_changed", (e) => {
 				propertiesPanel.setScene(e.scene);
